@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "miscadmin.h": "c",
+        "bgworker.h": "c",
+        "fmgr.h": "c",
+        "postgres.h": "c"
+    }
+}

@@ -1,4 +1,4 @@
-comment = 'simple scheduled tasks'
+comment = 'job scheduler'
 default_version = '1.0'
 module_pathname = '$libdir/scheduler'
 relocatable = true
