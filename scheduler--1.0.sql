@@ -10,8 +10,13 @@ CREATE TABLE scheduler.jobs (
     job_id SERIAL PRIMARY KEY,
     job_name TEXT NOT NULL,
     job_command TEXT NOT NULL, -- команда для выполнения
-    interval INTERVAL NOT NULL, -- интервал выполнения
+    schedule_interval INTERVAL NOT NULL, -- интервал выполнения
     last_run TIMESTAMP WITH TIME ZONE, -- время последнего выполнения
     next_run TIMESTAMP WITH TIME ZONE, -- время следующего выполнения
     status BOOLEAN DEFAULT TRUE -- статус задания
 );
+
+CREATE FUNCTION scheduler.run_jobs()
+RETURNS VOID
+AS '$libdir/scheduler', 'scheduler_run_jobs'
+LANGUAGE C STRICT;
