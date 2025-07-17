@@ -20,3 +20,30 @@ CREATE FUNCTION scheduler.run_jobs()
 RETURNS VOID
 AS '$libdir/scheduler', 'scheduler_run_jobs'
 LANGUAGE C STRICT;
+
+-- Функция для добавления задания
+CREATE FUNCTION scheduler.add_job(
+    p_job_name TEXT,
+    p_job_command TEXT,
+    p_schedule_interval INTERVAL
+)
+RETURNS BIGINT
+AS $$
+    INSERT INTO scheduler.jobs (job_name, job_command, schedule_interval, next_run)
+    VALUES (p_job_name, p_job_command, p_schedule_interval, NOW())
+    RETURNING job_id;
+$$ LANGUAGE SQL;
+
+-- Функция для удаления задания
+CREATE FUNCTION scheduler.delete_job(p_job_id BIGINT)
+RETURNS VOID
+AS $$
+    DELETE FROM scheduler.jobs WHERE job_id = p_job_id;
+$$ LANGUAGE SQL;
+
+-- Функция для включения/выключения задания
+CREATE FUNCTION scheduler.set_job_status(p_job_id BIGINT, p_status BOOLEAN)
+RETURNS VOID
+AS $$
+    UPDATE scheduler.jobs SET status = p_status WHERE job_id = p_job_id;
+$$ LANGUAGE SQL;

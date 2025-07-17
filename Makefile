@@ -1,6 +1,7 @@
 # contrib/scheduler/Makefile
 
 MODULE_big = scheduler
+OBJS = scheduler.o
 EXTENSION = scheduler
 DATA = scheduler--1.0.sql
 # REGRESS = scheduler - тесты

@@ -6,29 +6,31 @@
 #include "miscadmin.h"
 #include "storage/ipc.h"
 #include "postmaster/bgworker.h"
+#include "storage/latch.h"
 
 PG_MODULE_MAGIC;
+
 PG_FUNCTION_INFO_V1(scheduler_run_jobs);
 
+PGDLLEXPORT void scheduler_worker_main(Datum main_arg);
 void _PG_init(void);
 void _PG_fini(void);
-void scheduler_worker_main(Datum main_arg);
 
 void 
 _PG_init(void)
 {
     BackgroundWorker worker;
     MemSet(&worker, 0, sizeof(worker));
-
+    
     snprintf(worker.bgw_name, BGW_MAXLEN, "scheduler_worker");
-    worker.bgw_flags = BGWORKER_CLASS_PROCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;    // запрашивается возможность устанавливать подключение к базе данных
+    worker.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION;    // запрашивается возможность устанавливать подключение к базе данных
     worker.bgw_start_time = BgWorkerStart_RecoveryFinished;     // выполнить запуск, как только система перейдёт в обычный режим чтения-записи
-    worker.bgw_restart_time = 10;   // перезапуск каждые 10 секунд, если процесс завершится
-    sprintf(worker.bgw_function_name, "scheduler_worker_main");
-    sprintf(worker.bgw_library_name, "scheduler");
+    worker.bgw_restart_time = BGW_NEVER_RESTART;   // перезапуск каждые 10 секунд, если процесс завершится
+    snprintf(worker.bgw_function_name, BGW_MAXLEN, "scheduler_worker_main");
+    snprintf(worker.bgw_library_name, BGW_MAXLEN, "scheduler");
     worker.bgw_main_arg = (Datum) 0;
     worker.bgw_notify_pid = 0;
-    
+
     RegisterBackgroundWorker(&worker);
 }
 
@@ -38,9 +40,10 @@ _PG_fini(void)
     // пусто)
 }
 
-void 
+PGDLLEXPORT void 
 scheduler_worker_main(Datum main_arg)
 {
+    
     while (!proc_exit_inprogress)
     {
         int ret;
@@ -60,6 +63,7 @@ scheduler_worker_main(Datum main_arg)
         // 10 секунд перед следующей проверкой
         pg_usleep(10000000L);
     }
+        
 }
 
 Datum
