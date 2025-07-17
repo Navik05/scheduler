@@ -3,6 +3,7 @@
         "miscadmin.h": "c",
         "bgworker.h": "c",
         "fmgr.h": "c",
-        "postgres.h": "c"
+        "postgres.h": "c",
+        "ipc.h": "c"
     }
 }

@@ -6,20 +6,43 @@
 CREATE SCHEMA IF NOT EXISTS scheduler;
 
 -- Таблица для хранения заданий
-CREATE TABLE scheduler.jobs (
+CREATE TABLE IF NOT EXISTS  scheduler.jobs (
     job_id SERIAL PRIMARY KEY,
     job_name TEXT NOT NULL,
     job_command TEXT NOT NULL, -- команда для выполнения
     schedule_interval INTERVAL NOT NULL, -- интервал выполнения
-    last_run TIMESTAMP WITH TIME ZONE, -- время последнего выполнения
-    next_run TIMESTAMP WITH TIME ZONE, -- время следующего выполнения
-    status BOOLEAN DEFAULT TRUE -- статус задания
+    last_run TIMESTAMPTZ, -- время последнего выполнения
+    next_run TIMESTAMPTZ, -- время следующего выполнения
+    status BOOLEAN NOT NULL DEFAULT TRUE -- статус задания
 );
 
-CREATE FUNCTION scheduler.run_jobs()
+CREATE FUNCTION scheduler.start_worker()
 RETURNS VOID
-AS '$libdir/scheduler', 'scheduler_run_jobs'
+AS '$libdir/scheduler', 'scheduler_start_worker'
 LANGUAGE C STRICT;
+
+-- Функция для запуска воркера
+CREATE OR REPLACE FUNCTION scheduler._on_extension_create()
+RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    -- Именно scheduler
+    IF EXISTS (
+        SELECT 1 
+        FROM pg_event_trigger_ddl_commands() 
+        WHERE object_identity = 'scheduler'
+    ) THEN
+        PERFORM scheduler.start_worker();
+        RAISE NOTICE 'Scheduler worker started';
+    END IF;
+END;
+$$;
+
+-- Триггер на создания расширения
+CREATE EVENT TRIGGER scheduler_worker_trigger
+ON ddl_command_end
+WHEN TAG IN ('CREATE EXTENSION')
+EXECUTE FUNCTION scheduler._on_extension_create();
 
 -- Функция для добавления задания
 CREATE FUNCTION scheduler.add_job(
